@@ -1,4 +1,4 @@
-# scripts/cleanup.sh
+# SysMoniTool/scripts/cleanup.sh
 #!/bin/bash
 
 LOG_FILE="/var/log/system_monitor_cleanup.log"
@@ -10,15 +10,15 @@ log_message() {
 
 cleanup_temp_files() {
     log_message "Starting temporary files cleanup"
-    find /tmp -type f -atime +7 -delete 2>/dev/null
-    find /var/tmp -type f -atime +7 -delete 2>/dev/null
+    find /tmp -type f -atime +7 -delete 2>/dev/null || true
+    find /var/tmp -type f -atime +7 -delete 2>/dev/null || true
     log_message "Completed temporary files cleanup"
 }
 
 cleanup_system_cache() {
     log_message "Starting system cache cleanup"
     sync
-    echo 1 > /proc/sys/vm/drop_caches 2>/dev/null
+    echo 1 > /proc/sys/vm/drop_caches 2>/dev/null || true
     log_message "Completed system cache cleanup"
 }
 
@@ -30,9 +30,9 @@ manage_processes() {
         if [ "$mem" -gt 80 ]; then  # Only kill if using >80% memory
             process_name=$(ps -p "$pid" -o comm=)
             log_message "Terminating high-memory process: $process_name (PID: $pid, Memory: $mem%)"
-            kill -15 "$pid" 2>/dev/null  # SIGTERM first
+            kill -15 "$pid" 2>/dev/null || true  # SIGTERM first
             sleep 2
-            kill -9 "$pid" 2>/dev/null   # SIGKILL if still running
+            kill -9 "$pid" 2>/dev/null || true   # SIGKILL if still running
         fi
     done
     

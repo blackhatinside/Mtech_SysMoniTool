@@ -1,9 +1,21 @@
 // SysMoniTool/src/cpp/monitor.cpp
 #include "metrics.h"
 
+// Add at the top of monitor.cpp after includes
+void write_pid_file() {
+    std::ofstream pid_file("/tmp/monitor.pid");
+    pid_file << getpid();
+    pid_file.close();
+}
+
+void remove_pid_file() {
+    std::remove("/tmp/monitor.pid");
+}
+    
 MetricsCollector::MetricsCollector() {
     last_cpu_stats = read_cpu_stats();
     last_disk_read_time = std::chrono::steady_clock::now();
+    last_net_time = std::chrono::steady_clock::now();  // Initialize last_net_time
     
     // Initialize disk and network counters
     std::ifstream disk_stats("/proc/diskstats");
@@ -114,7 +126,16 @@ double MetricsCollector::get_disk_io() {
     
     auto current_time = std::chrono::steady_clock::now();
     double seconds = std::chrono::duration<double>(current_time - last_disk_read_time).count();
+    
+    // Add bounds checking
+    if (seconds < 0.001) seconds = 0.001; // Prevent division by very small numbers
+    if (current_bytes_read < last_disk_bytes_read) current_bytes_read = last_disk_bytes_read; // Prevent negative values
+    
     double mb_per_second = (current_bytes_read - last_disk_bytes_read) / (1024.0 * 1024.0) / seconds;
+    
+    // Add sanity check for unrealistic values
+    if (mb_per_second > 10000) // Cap at 10GB/s which is already very high
+        mb_per_second = 0;
     
     last_disk_bytes_read = current_bytes_read;
     last_disk_read_time = current_time;
@@ -137,8 +158,21 @@ double MetricsCollector::get_network_usage() {
         }
     }
     
-    double mb_per_second = (current_bytes - last_net_bytes) / (1024.0 * 1024.0);
+    auto current_time = std::chrono::steady_clock::now();
+    double seconds = std::chrono::duration<double>(current_time - last_net_time).count();
+    
+    // Add bounds checking
+    if (seconds < 0.001) seconds = 0.001; // Prevent division by very small numbers
+    if (current_bytes < last_net_bytes) current_bytes = last_net_bytes; // Prevent negative values
+    
+    double mb_per_second = (current_bytes - last_net_bytes) / (1024.0 * 1024.0) / seconds;
+    
+    // Add sanity check for unrealistic values
+    if (mb_per_second > 1000) // Cap at 1GB/s which is already very high
+        mb_per_second = 0;
+    
     last_net_bytes = current_bytes;
+    last_net_time = current_time;
     
     return mb_per_second;
 }
@@ -174,10 +208,28 @@ void MetricsCollector::send_metrics(const SystemMetrics& metrics) {
     }
 }
 
+// Add in main() function, right at the start:
 int main() {
     try {
+        // Check if already running
+        std::ifstream existing_pid("/tmp/monitor.pid");
+        if (existing_pid.good()) {
+            std::string pid_str;
+            existing_pid.close();
+            std::cerr << "Monitor process already running" << std::endl;
+            return 1;
+        }
+        
+        write_pid_file();
+        
         MetricsCollector collector;
         SystemMetrics metrics;
+        
+        // Set up signal handler for cleanup
+        signal(SIGTERM, [](int) {
+            remove_pid_file();
+            exit(0);
+        });
         
         while (true) {
             collector.collect_metrics(metrics);
@@ -185,10 +237,12 @@ int main() {
             sleep(1);  // Collect metrics every second
         }
     } catch (const std::exception& e) {
+        remove_pid_file();
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
     
+    remove_pid_file();
     return 0;
 }
 

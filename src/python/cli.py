@@ -10,56 +10,128 @@ import signal
 import os
 import psutil
 import tabulate
+import socket
 
 class MonitoringCLI:
     def __init__(self):
         self.db = Database('data/logs.db')
         self.pid_file = 'data/monitor.pid'
+        self.cpp_pid_file = '/tmp/monitor.pid'
+        self.port = 12345
+
+    def is_port_in_use(self):
+        """Check if the monitoring port is already in use."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                return s.connect_ex(('localhost', self.port)) == 0
+        except:
+            return False
+
+    def kill_process_and_children(self, pid):
+        """Recursively kill a process and all its children."""
+        try:
+            parent = psutil.Process(pid)
+            children = parent.children(recursive=True)
+            for child in children:
+                try:
+                    child.kill()
+                except psutil.NoSuchProcess:
+                    pass
+            parent.kill()
+        except psutil.NoSuchProcess:
+            pass
+
+    def cleanup_existing_processes(self):
+        """Clean up any existing monitor and automation processes."""
+        # Clean up processes by name
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                cmdline = proc.cmdline()
+                if len(cmdline) >= 2:
+                    if './build/monitor' in ' '.join(cmdline) or 'automation.py' in cmdline[1]:
+                        self.kill_process_and_children(proc.pid)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+
+        # Clean up socket if it exists
+        try:
+            subprocess.run(['pkill', '-f', '12345'], stderr=subprocess.DEVNULL)
+        except subprocess.SubprocessError:
+            pass
+
+        # Remove PID files
+        if os.path.exists(self.pid_file):
+            os.remove(self.pid_file)
+        if os.path.exists(self.cpp_pid_file):
+            os.remove(self.cpp_pid_file)
+
+        # Wait for port to be released
+        timeout = time.time() + 5  # 5 second timeout
+        while self.is_port_in_use() and time.time() < timeout:
+            time.sleep(0.1)
 
     def start_monitoring(self):
-        if self.is_monitoring_running():
-            print("Monitoring is already running.")
+        print("Starting monitoring system...")
+        
+        # Clean up any existing processes first
+        self.cleanup_existing_processes()
+        
+        # Check if port is still in use after cleanup
+        if self.is_port_in_use():
+            print("Error: Port 12345 is still in use after cleanup. Please check for blocking processes.")
             return
         
         try:
             # Start the C++ monitor process
             cpp_process = subprocess.Popen(['./build/monitor'])
+            time.sleep(1)  # Give the monitor time to start
+            
+            if not cpp_process.poll() is None:  # Check if process is still running
+                raise Exception("Monitor process failed to start")
             
             # Start the Python automation process
             python_process = subprocess.Popen(['python3', 'src/python/automation.py'])
+            time.sleep(1)  # Give the automation process time to start
+            
+            if not python_process.poll() is None:  # Check if process is still running
+                cpp_process.terminate()
+                raise Exception("Automation process failed to start")
             
             # Save PIDs
             with open(self.pid_file, 'w') as f:
                 json.dump({
                     'cpp_pid': cpp_process.pid,
-                    'python_pid': python_process.pid
+                    'python_pid': python_process.pid,
+                    'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }, f)
             
             print("Monitoring started successfully.")
         except Exception as e:
             print(f"Failed to start monitoring: {e}")
+            self.cleanup_existing_processes()
 
     def stop_monitoring(self):
-        if not self.is_monitoring_running():
+        print("Stopping monitoring system...")
+        if os.path.exists(self.pid_file):
+            try:
+                with open(self.pid_file, 'r') as f:
+                    pids = json.load(f)
+                
+                # Terminate processes
+                for name, pid in pids.items():
+                    if name != 'start_time':  # Skip the timestamp
+                        try:
+                            process = psutil.Process(pid)
+                            self.kill_process_and_children(pid)
+                        except psutil.NoSuchProcess:
+                            pass
+                
+                self.cleanup_existing_processes()
+                print("Monitoring stopped successfully.")
+            except Exception as e:
+                print(f"Failed to stop monitoring: {e}")
+        else:
             print("Monitoring is not running.")
-            return
-        
-        try:
-            with open(self.pid_file, 'r') as f:
-                pids = json.load(f)
-            
-            # Terminate processes
-            for name, pid in pids.items():
-                try:
-                    os.kill(pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-            
-            # Remove PID file
-            os.remove(self.pid_file)
-            print("Monitoring stopped successfully.")
-        except Exception as e:
-            print(f"Failed to stop monitoring: {e}")
 
     def is_monitoring_running(self):
         if not os.path.exists(self.pid_file):
@@ -69,13 +141,22 @@ class MonitoringCLI:
             with open(self.pid_file, 'r') as f:
                 pids = json.load(f)
             
-            for pid in pids.values():
-                if not psutil.pid_exists(pid):
-                    return False
+            # Check each process
+            for name, pid in pids.items():
+                if name != 'start_time':  # Skip the timestamp
+                    if not psutil.pid_exists(pid):
+                        return False
+                    try:
+                        process = psutil.Process(pid)
+                        if process.status() == 'zombie':
+                            return False
+                    except psutil.NoSuchProcess:
+                        return False
             return True
         except:
             return False
 
+    # [Rest of the code remains unchanged: view_current_metrics, query_historical_data, configure_thresholds]
     def view_current_metrics(self):
         latest = self.db.get_latest_metrics()
         if not latest:

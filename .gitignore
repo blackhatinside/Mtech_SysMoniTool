@@ -8,3 +8,10 @@ venv/
 # Ignore temporary files from code editors
 *.pyc
 __pycache__/
+
+# Ignore folders from code editors
+SRS_doc.txt
+
+# Ignore folders from code editors
+build/
+data/

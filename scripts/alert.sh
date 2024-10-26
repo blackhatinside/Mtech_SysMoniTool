@@ -1,4 +1,4 @@
-# scripts/alert.sh
+# SysMoniTool/scripts/alert.sh
 #!/bin/bash
 
 LOG_FILE="/var/log/system_monitor_alerts.log"
@@ -13,7 +13,7 @@ log_message() {
 send_email_alert() {
     local subject="$1"
     local message="$2"
-    echo "$message" | mail -s "$subject" "$ADMIN_EMAIL"
+    echo "$message" | mail -s "$subject" "$ADMIN_EMAIL" || true
     log_message "Email alert sent: $subject"
 }
 
@@ -52,8 +52,10 @@ main() {
     
     log_message "$message"
     send_email_alert "System Alert: $alert_type" "$message"
-    send_slack_alert "$message"
 }
+
+# Create log file if it doesn't exist
+touch "$LOG_FILE"
 
 main "$@"
 

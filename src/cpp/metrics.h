@@ -15,6 +15,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <iomanip>  // Added for std::put_time
+#include <csignal>    // Added for signal handling
+#include <signal.h>   // Added for signal handling
+#include <cstdio>     // Added for remove()
 
 struct CPUStats {
     unsigned long long user;
@@ -53,6 +57,7 @@ private:
     std::chrono::steady_clock::time_point last_disk_read_time;
     unsigned long long last_disk_bytes_read;
     unsigned long long last_net_bytes;
+    std::chrono::steady_clock::time_point last_net_time;  // Added this line
     int server_socket;
     
     CPUStats read_cpu_stats();

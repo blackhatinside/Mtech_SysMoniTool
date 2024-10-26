@@ -16,3 +16,34 @@ This project is a comprehensive Linux-based system monitoring and automation too
 
 ## Setup
 1. Clone the repository:
+
+# Project Directory Structure
+SysMoniTool/
+├── build/
+│   └── monitor
+├── data/
+│   ├── logs.db
+│   └── system_monitor.log
+├── Makefile
+├── output/
+│   └── SysMoniTool.png
+├── README.md
+├── requirements.txt
+├── scripts/
+│   ├── alert.sh
+│   ├── cleanup_monitoring.sh
+│   └── cleanup.sh
+├── src/
+│   ├── cpp/
+│   │   ├── metrics.h
+│   │   └── monitor.cpp
+│   └── python/
+│       ├── automation.py
+│       ├── cli.py
+│       ├── database.py
+│       └── __pycache__/
+│           ├── automation.cpython-310.pyc
+│           └── database.cpython-310.pyc
+└── SRS_doc.txt
+
+
