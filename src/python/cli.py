@@ -199,8 +199,22 @@ class MonitoringCLI:
             print("Invalid date format. Please use YYYY-MM-DD format.")
 
     def configure_thresholds(self):
+        # Default thresholds if none exist
+        default_thresholds = {
+            'cpu_usage': 80.0,
+            'memory_usage': 90.0,
+            'disk_io': 100.0,
+            'network_usage': 50.0
+        }
+
+        # Get current thresholds, use defaults if none exist
         current_thresholds = self.db.get_thresholds()
-        
+        if not current_thresholds:
+            current_thresholds = default_thresholds
+            # Initialize database with defaults
+            for name, value in default_thresholds.items():
+                self.db.update_threshold(name, value)
+
         print("\nCurrent Thresholds:")
         for name, value in current_thresholds.items():
             print(f"{name}: {value}")
