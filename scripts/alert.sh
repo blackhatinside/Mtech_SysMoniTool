@@ -32,6 +32,9 @@ main() {
     local alert_type="$1"
     local metric_value="$2"
     
+    # Add debug logging for script triggering
+    log_message "Alert script triggered with parameters: type=$alert_type, value=$metric_value"
+    
     case "$alert_type" in
         "cpu")
             message="High CPU usage detected: ${metric_value}%"
@@ -54,7 +57,8 @@ main() {
     send_email_alert "System Alert: $alert_type" "$message"
 }
 
-# Create log file if it doesn't exist
+# Create log directory and file if they don't exist
+mkdir -p "$(dirname "$LOG_FILE")"
 touch "$LOG_FILE"
 
 main "$@"
