@@ -1,42 +1,35 @@
-# System Monitoring and Automation Tool
-
+### System Monitoring and Automation Tool
+```
 This project is a comprehensive Linux-based system monitoring and automation tool that tracks CPU, memory, disk I/O, network usage, and process performance. It includes an automated alerting system that triggers scripts based on system thresholds.
+```
+
 
 ## Features
+```
 - Real-time system metrics monitoring
 - Automated actions based on defined thresholds
 - Historical data storage and querying
 - Command-line interface for interaction
+```
 
 ## Requirements
+```
 - Linux-based operating system
 - C++ compiler (e.g., g++)
 - Python 3
 - SQLite
+```
 
 ## Setup
+```
 1. Clone the repository:
 
 if port is already in use:
 	sudo lsof -i :12345
 	sudo kill -9 <PID>
-
-# Demo Run the Project
-
-sudo mkdir -p /var/log
-sudo touch /var/log/system_monitor_cleanup.log
-sudo chown -R $USER:$USER /var/log/system_monitor_cleanup.log
-
-chmod +x scripts/*.sh
-g++ -o build/monitor src/cpp/monitor.cpp -std=c++11
-chmod +x build/monitor
-
-python3 src/python/cli.py --start
-python3 src/python/cli.py --view
-python3 src/python/cli.py --view
-python3 src/python/cli.py --stop
-
-``` # Project Directory Structure
+```
+## Project Directory Structure
+``` 
 SysMoniTool/
 ├── build/
 │   └── monitor
@@ -64,6 +57,23 @@ SysMoniTool/
 │           ├── automation.cpython-310.pyc
 │           └── database.cpython-310.pyc
 └── SRS_doc.txt
+```
+
+## Demo Run the Project
+```
+sudo mkdir -p /var/log
+sudo touch /var/log/system_monitor_cleanup.log
+sudo chown -R $USER:$USER /var/log/system_monitor_cleanup.log
+
+chmod +x scripts/*.sh
+g++ -o build/monitor src/cpp/monitor.cpp -std=c++11
+chmod +x build/monitor
+
+python3 src/python/cli.py --start
+python3 src/python/cli.py --view
+python3 src/python/cli.py --config
+python3 src/python/cli.py --view
+python3 src/python/cli.py --stop
 ```
 
 
