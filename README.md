@@ -1,7 +1,7 @@
 ### System Monitoring and Automation Tool
-```
+
 This project is a comprehensive Linux-based system monitoring and automation tool that tracks CPU, memory, disk I/O, network usage, and process performance. It includes an automated alerting system that triggers scripts based on system thresholds.
-```
+
 
 
 ## Features
