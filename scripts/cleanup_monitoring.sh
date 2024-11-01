@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# SysMoniTool/scripts/cleanup_monitoring.sh
+
 # cleanup_monitoring.sh
 echo "Cleaning up monitoring system..."
 

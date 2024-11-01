@@ -1,5 +1,6 @@
-# SysMoniTool/scripts/cleanup.sh
 #!/bin/bash
+
+# SysMoniTool/scripts/cleanup.sh
 
 LOG_FILE="/var/log/system_monitor_cleanup.log"
 

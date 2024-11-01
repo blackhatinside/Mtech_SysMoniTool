@@ -1,5 +1,6 @@
-# SysMoniTool/scripts/alert.sh
 #!/bin/bash
+
+# SysMoniTool/scripts/alert.sh
 
 LOG_FILE="/var/log/system_monitor_alerts.log"
 ADMIN_EMAIL="admin@example.com"
