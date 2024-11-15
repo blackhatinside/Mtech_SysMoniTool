@@ -5,6 +5,7 @@ import subprocess
 import logging
 from datetime import datetime
 from database import Database
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,16 +17,27 @@ logging.basicConfig(
 )
 
 class MetricsReceiver:
-    def __init__(self, host='localhost', port=12345):
+    def __init__(self, host='localhost', port=12345, db_path='data/logs.db'):
         self.host = host
         self.port = port
-        self.db = Database('data/logs.db')
+        self.socket = None
+        
+        # Ensure data directory exists
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        self.db = Database(db_path)
+        
+        # Initialize thresholds
         self.thresholds = {
             'cpu_usage': 80.0,
             'memory_usage': 90.0,
             'disk_io': 100.0,  # MB/s
             'network_usage': 50.0  # MB/s
         }
+        
+        # Load thresholds from database
+        stored_thresholds = self.db.get_thresholds()
+        if stored_thresholds:
+            self.thresholds.update(stored_thresholds)
     
     def connect(self):
         try:

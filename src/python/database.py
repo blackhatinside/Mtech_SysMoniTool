@@ -37,17 +37,41 @@ class Database:
 
     def insert_data(self, metrics):
         cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO metrics (timestamp, cpu_usage, memory_usage, disk_io, network_usage)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            metrics['timestamp'],
-            metrics['cpu_usage'],
-            metrics['memory_usage'],
-            metrics['disk_io'],
-            metrics['network_usage']
-        ))
-        self.conn.commit()
+        try:
+            # Validate metrics data
+            required_fields = ['timestamp', 'cpu_usage', 'memory_usage', 'disk_io', 'network_usage']
+            for field in required_fields:
+                if field not in metrics or metrics[field] is None:
+                    raise sqlite3.Error(f"Missing or null required field: {field}")
+                
+            # Validate numeric fields
+            numeric_fields = ['cpu_usage', 'memory_usage', 'disk_io', 'network_usage']
+            for field in numeric_fields:
+                try:
+                    float(metrics[field])
+                except (ValueError, TypeError):
+                    raise sqlite3.Error(f"Invalid numeric value for field: {field}")
+            
+            # Validate timestamp format
+            try:
+                datetime.strptime(metrics['timestamp'], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                raise sqlite3.Error("Invalid timestamp format")
+            
+            cursor.execute('''
+                INSERT INTO metrics (timestamp, cpu_usage, memory_usage, disk_io, network_usage)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                metrics['timestamp'],
+                float(metrics['cpu_usage']),
+                float(metrics['memory_usage']),
+                float(metrics['disk_io']),
+                float(metrics['network_usage'])
+            ))
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            raise sqlite3.Error(str(e))
 
     def query_data(self, start_date, end_date):
         cursor = self.conn.cursor()
