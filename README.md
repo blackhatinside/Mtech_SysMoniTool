@@ -74,6 +74,7 @@ python3 src/python/cli.py --view
 python3 src/python/cli.py --config
 python3 src/python/cli.py --view
 python3 src/python/cli.py --stop
+python3 -m unittest discover tests
 ```
 
 
